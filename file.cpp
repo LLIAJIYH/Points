@@ -4,6 +4,19 @@
 #include <optional>
 #include <iostream>
 
+//static_cast - преобразование данных
+//
+//optional - данные, которые могут передаваться, а могут не передаваться
+//
+//unique_ptr - ля управления любым динамически выделенным объектом/ресурсом, 
+//но с условием, что std::unique_ptr полностью владеет переданным ему объектом, а не делится «владением» еще с другими классами.
+//
+//constexpr - создавать переменные, функции и даже объекты, которые будут рассчитаны на этапе компиляции.
+
+
+
+
+
 constexpr float pi() {
     return 4.0f * std::atan(1.0f);
 }
@@ -14,7 +27,7 @@ public:
     virtual void print() const = 0;
     virtual float getX() const = 0;
     virtual float getY() const = 0;
-    float getZ() const {};
+    virtual float getZ() const {};
 };
 
 class Point2D : public Point {
@@ -26,11 +39,11 @@ public:
     Point2D(float x, float y) :
         m_x(x),
         m_y(y)
-    {}
+    {std::cout<<"Constructor called"<<std::endl;}
 
-    Point2D(const Point2D& src) : Point2D(src.m_x, src.m_y) {}
+    Point2D(const Point2D& src) : Point2D(src.m_x, src.m_y) {std::cout<<"Constructor called"<<std::endl;}
 
-    virtual ~Point2D() {}
+    virtual ~Point2D() {std::cout<<"destructor called"<<std::endl;}
 
     virtual void print() const override {
         std::cout << m_x << "; " << m_y << std::endl;
@@ -45,7 +58,7 @@ public:
 
     virtual float getX() const { return m_x; };
     virtual float getY() const { return m_y; };
-    float getZ() const = delete;
+    //float getZ() const = delete;
 };
 
 class Point3D : public Point {
@@ -229,86 +242,48 @@ public:
 
     virtual std::optional<float> getVolume() const override {
         float r = getRadius();
-        return 4.0f * pi() * r * r * r / 3.0f;
+        return 4.0f/ 3.0f * pi() * r * r * r;
     }
 };
 
 class Tetrahedron : public Figure {
 private:
     float getSegmentA() const {
-        return static_cast<Point2D&>(*m_points[0]).distance(static_cast<Point2D&>(*m_points[1]));
+        return static_cast<Point3D&>(*m_points[0]).distance(static_cast<Point3D&>(*m_points[1]));
     }
 
     float getSegmentB() const {
-        return static_cast<Point2D&>(*m_points[1]).distance(static_cast<Point2D&>(*m_points[2]));
+        return static_cast<Point3D&>(*m_points[1]).distance(static_cast<Point3D&>(*m_points[2]));
     }
 
     float getSegmentC() const {
-        return static_cast<Point2D&>(*m_points[2]).distance(static_cast<Point2D&>(*m_points[0]));
+        return static_cast<Point3D&>(*m_points[2]).distance(static_cast<Point3D&>(*m_points[0]));
     }
     
     float getSegmentD() const {
-        return static_cast<Point2D&>(*m_points[0]).distance(static_cast<Point2D&>(*m_points[3]));
+        return static_cast<Point3D&>(*m_points[0]).distance(static_cast<Point3D&>(*m_points[3]));
     }
 
     float getSegmentE() const {
-        return static_cast<Point2D&>(*m_points[1]).distance(static_cast<Point2D&>(*m_points[3]));
+        return static_cast<Point3D&>(*m_points[1]).distance(static_cast<Point3D&>(*m_points[3]));
     }
 
     float getSegmentF() const {
-        return static_cast<Point2D&>(*m_points[2]).distance(static_cast<Point2D&>(*m_points[3]));
-    }
-
-    float **submatrix(float **matrix, unsigned int n, unsigned int x, unsigned int y) const {
-        float **submatrix = new float *[n - 1];
-        int subi = 0;
-        for (int i = 0; i < n; i++) {
-            submatrix[subi] = new float[n - 1];
-            int subj = 0;
-            if (i == y) {
-                continue;
-            }
-            for (int j = 0; j < n; j++) {
-                if (j == x) {
-                    continue;
-                }
-                submatrix[subi][subj] = matrix[i][j];
-                subj++;
-            }
-            subi++;
-        }
-        return submatrix;
-    }
-
-    float determinant(float **matrix, unsigned int n) const {
-        float det = 0.0f;
-        for (int x = 0; x < n; ++x) {
-            det += ((x % 2 == 0 ? 1 : -1) * matrix[0][x] * determinant(submatrix(matrix, n, x, 0), n - 1));
-        }
-        return det;
+        return static_cast<Point3D&>(*m_points[2]).distance(static_cast<Point3D&>(*m_points[3]));
     }
 
     float getDeterminant() const {
-        int n = 4;
-        float **matrix = new float *[n];
-        for (int i = 0; i < n; ++i) {
-            matrix[i] = new float[n];
-            for (int j = 0; j < n; ++j) {
-                if(i == 0){
-                    matrix[i][j] = 1;
-                }
-                if(i == 1){
-                    matrix[i][j] = this->getX(i);
-                }
-                if(i == 2){
-                    matrix[i][j] = this->getY(i);
-                }
-                if(i == 3){
-                    matrix[i][j] = this->getZ(i);
-                }
-            }
-        }
-        return determinant(matrix, 4);
+        float a[3][3] = {
+        {this->getX(1)-this->getX(0),this->getY(1)-this->getY(0),this->getZ(1)-this->getZ(0)},
+        {this->getX(2)-this->getX(1),this->getY(2)-this->getY(1),this->getZ(2)-this->getZ(1)},
+        {this->getX(3)-this->getX(2),this->getY(3)-this->getY(2),this->getZ(3)-this->getZ(2)}
+    };
+
+    float d; // определитель
+    
+    // находим по правилу треугольника
+    d=((a[0][0]*a[1][1]*a[2][2]) + (a[0][1]*a[1][2]*a[2][0])+ (a[1][0]*a[0][2]*a[2][1]) - (a[2][0]*a[1][1]*a[0][2]) - (a[0][0]*a[2][1]*a[1][2]) - (a[1][0]*a[0][1]*a[2][2]));
+    return d/6.0f;
     }
 public:
     Tetrahedron(const Point3D& p1, const Point3D& p2, const Point3D& p3, const Point3D& p4) {
@@ -320,7 +295,16 @@ public:
     }
 
     virtual std::optional<float> getVolume() const override {
-        return getDeterminant()/6;
+    float a[3][3] = {
+        {this->getX(1)-this->getX(0),this->getY(1)-this->getY(0),this->getZ(1)-this->getZ(0)},
+        {this->getX(2)-this->getX(1),this->getY(2)-this->getY(1),this->getZ(2)-this->getZ(1)},
+        {this->getX(3)-this->getX(2),this->getY(3)-this->getY(2),this->getZ(3)-this->getZ(2)}
+    };
+    float d; // определитель
+    
+    // находим по правилу треугольника
+    d=((a[0][0]*a[1][1]*a[2][2]) + (a[0][1]*a[1][2]*a[2][0])+ (a[1][0]*a[0][2]*a[2][1]) - (a[2][0]*a[1][1]*a[0][2]) - (a[0][0]*a[2][1]*a[1][2]) - (a[1][0]*a[0][1]*a[2][2]));
+    return d/6.0f;
     }
 
     virtual std::optional<float> getPerimeter() const override {
@@ -333,51 +317,51 @@ class Parallelepiped : public Figure {
 private:
     // down
     float getSegmentA() const {
-        return static_cast<Point2D&>(*m_points[0]).distance(static_cast<Point2D&>(*m_points[1]));
+        return static_cast<Point3D&>(*m_points[0]).distance(static_cast<Point3D&>(*m_points[1]));
     }
 
     float getSegmentB() const {
-        return static_cast<Point2D&>(*m_points[1]).distance(static_cast<Point2D&>(*m_points[2]));
+        return static_cast<Point3D&>(*m_points[1]).distance(static_cast<Point3D&>(*m_points[2]));
     }
 
     float getSegmentC() const {
-        return static_cast<Point2D&>(*m_points[2]).distance(static_cast<Point2D&>(*m_points[3]));
+        return static_cast<Point3D&>(*m_points[2]).distance(static_cast<Point3D&>(*m_points[3]));
     }
     
     float getSegmentD() const {
-        return static_cast<Point2D&>(*m_points[3]).distance(static_cast<Point2D&>(*m_points[0]));
+        return static_cast<Point3D&>(*m_points[3]).distance(static_cast<Point3D&>(*m_points[0]));
     }
     // up
     float getSegmentE() const {
-        return static_cast<Point2D&>(*m_points[4]).distance(static_cast<Point2D&>(*m_points[5]));
+        return static_cast<Point3D&>(*m_points[4]).distance(static_cast<Point3D&>(*m_points[5]));
     }
 
     float getSegmentF() const {
-        return static_cast<Point2D&>(*m_points[5]).distance(static_cast<Point2D&>(*m_points[6]));
+        return static_cast<Point3D&>(*m_points[5]).distance(static_cast<Point3D&>(*m_points[6]));
     }
 
     float getSegmentH() const {
-        return static_cast<Point2D&>(*m_points[6]).distance(static_cast<Point2D&>(*m_points[7]));
+        return static_cast<Point3D&>(*m_points[6]).distance(static_cast<Point3D&>(*m_points[7]));
     }
 
     float getSegmentI() const {
-        return static_cast<Point2D&>(*m_points[7]).distance(static_cast<Point2D&>(*m_points[4]));
+        return static_cast<Point3D&>(*m_points[7]).distance(static_cast<Point3D&>(*m_points[4]));
     }
     // borders
     float getSegmentJ() const {
-        return static_cast<Point2D&>(*m_points[0]).distance(static_cast<Point2D&>(*m_points[4]));
+        return static_cast<Point3D&>(*m_points[0]).distance(static_cast<Point3D&>(*m_points[4]));
     }
 
     float getSegmentK() const {
-        return static_cast<Point2D&>(*m_points[1]).distance(static_cast<Point2D&>(*m_points[5]));
+        return static_cast<Point3D&>(*m_points[1]).distance(static_cast<Point3D&>(*m_points[5]));
     }
 
     float getSegmentL() const {
-        return static_cast<Point2D&>(*m_points[2]).distance(static_cast<Point2D&>(*m_points[6]));
+        return static_cast<Point3D&>(*m_points[2]).distance(static_cast<Point3D&>(*m_points[6]));
     }
 
     float getSegmentM() const {
-        return static_cast<Point2D&>(*m_points[7]).distance(static_cast<Point2D&>(*m_points[7]));
+        return static_cast<Point3D&>(*m_points[3]).distance(static_cast<Point3D&>(*m_points[7]));
     }
 public:
     Parallelepiped(const Point3D& p1, const Point3D& p2, const Point3D& p3, const Point3D& p4, const Point3D& p5, const Point3D& p6, const Point3D& p7, const Point3D& p8) {
@@ -445,6 +429,22 @@ int main() {
     printFigureInfo(Sphere(
         Point3D(0, 0, 0),
         Point3D(1, 0, 0)
+    ));
+    printFigureInfo(Parallelepiped(
+        Point3D(0,0,0),
+        Point3D(1,0,0),
+        Point3D(1,1,0),
+        Point3D(0,1,0), 
+        Point3D(0,1,0),
+        Point3D(1,1,0),
+        Point3D(1,1,1),
+        Point3D(0,1,1)
+    ));
+    printFigureInfo(Tetrahedron(
+        Point3D(2, -1, 1),
+        Point3D(5, 5, 4),
+        Point3D(3, 2, -1),
+        Point3D(4, 1, 3)
     ));
 
     return 0;
